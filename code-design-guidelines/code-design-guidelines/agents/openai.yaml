@@ -1,0 +1,3 @@
+interface:
+  display_name: "Code Design Guidelines"
+  short_description: "保守性を高めるための、実装・設計・レビュー共通のコード設計基準"
