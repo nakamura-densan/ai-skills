@@ -2,7 +2,7 @@
 
 ## 目的
 
-`.code-design/context.md` を、プロジェクトを毎回ゼロから探索しないための索引兼キャッシュとして使う。
+`.code-design-guidelines/cache/context.md` を、プロジェクトを毎回ゼロから探索しないための索引兼キャッシュとして使う。
 
 正式なArchitecture DocumentationやADRの代わりにはしない。削除して再生成できる非権威的キャッシュとして扱う。
 

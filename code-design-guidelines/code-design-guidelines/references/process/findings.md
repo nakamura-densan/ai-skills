@@ -64,7 +64,7 @@ Report内でリポジトリ内のコード・設定・schema等を示す場合�
 [`src/orders/order.service.ts:42-58`](../../../src/orders/order.service.ts#L42-L58)
 ```
 
-`.code-design/reports/<review>/report.md` からリポジトリルートまでは通常 `../../..` だが、Reportの保存場所を変更した場合は、Reportから対象ファイルまでの相対pathを実際の配置から計算する。絶対ローカルpathはReportへ記録しない。
+`.code-design-guidelines/reports/<review>/report.md` からリポジトリルートまでは通常 `../../..` だが、Reportの保存場所を変更した場合は、Reportから対象ファイルまでの相対pathを実際の配置から計算する。絶対ローカルpathはReportへ記録しない。
 
 ### 行番号リンク
 

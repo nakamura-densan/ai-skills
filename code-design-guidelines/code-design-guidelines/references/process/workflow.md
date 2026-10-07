@@ -26,7 +26,7 @@
 
 設計判断・実装・レビューのいずれでも、判断結果を変え得るプロジェクト文脈を先に確認する。
 
-`.code-design/context.md` があれば最初に読む。その後、必要な範囲で次を確認する。
+`.code-design-guidelines/cache/context.md` があれば最初に読む。その後、必要な範囲で次を確認する。
 
 - `AGENTS.md`
 - README
@@ -66,7 +66,7 @@
 
 続けて、必要な範囲でTooling Auditを行う。型、linter、test、Prisma schema / DB制約、CI等ですでに機械的に担保されている事項を、人間や生成AIの注意力へ戻さない。
 
-画面・Componentのstylingが判断対象に含まれる場合は、CSSを前提にせず、依存関係・import・設定・代表実装から実際のstyling library / styling APIを特定し、[Styling](../technologies/styling.md) を適用する。packageに存在するだけの内部依存を、アプリケーションの採用方式と誤認しない。
+画面・コンポーネントのスタイリングが判断対象に含まれる場合は、CSSを前提にせず、依存関係・`import`・設定・代表実装から実際の方式を特定し、まず [スタイリング方式判定](../technologies/styling.md) を読む。その後、実際に利用している方式に対応するReferenceだけを追加で読む。Material UIが内部依存としてEmotionを持つだけの場合はEmotionを直接採用しているとは判断しない。
 
 ## 5. Coreを適用する
 
@@ -141,7 +141,7 @@ Reviewで確認した問題と修正方針を基に変更する。修正案自�
 
 ### context
 
-`.code-design/context.md` には、今後も使える事実だけを保存する。
+`.code-design-guidelines/cache/context.md` には、今後も使える事実だけを保存する。
 
 - 重要Docs / ADRのpath
 - architecture boundary
@@ -156,7 +156,7 @@ Finding、Severity、修正案、一時的な仮説、その実行だけの探�
 
 ### report
 
-ReviewまたはReview & Fixでは、`.code-design/reports/YYYYMMDD-HHMMSS-<target>/report.md` を作る。
+ReviewまたはReview & Fixでは、`.code-design-guidelines/reports/YYYYMMDD-HHMMSS-<target>/report.md` を作る。
 
 Design GuidanceやImplementationではreportを作らない。ユーザーが明示的に求めた場合だけ作成する。
 

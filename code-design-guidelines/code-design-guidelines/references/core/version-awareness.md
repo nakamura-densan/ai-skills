@@ -37,7 +37,7 @@ Skill内には、長期間有効な設計原則と確認手順だけを保持す
 
 ## Project Contextへ保存する情報
 
-`.code-design/context.md` には、プロジェクト自身のバージョンや有効設定は保存してよい。
+`.code-design-guidelines/cache/context.md` には、プロジェクト自身のバージョンや有効設定は保存してよい。
 
 保存しないもの:
 

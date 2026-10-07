@@ -1,86 +1,93 @@
-# Prisma Review Guide
+# Prisma設計ガイド
 
-PrismaをDBアクセスの基本境界として扱う。DB設計・query・transaction・migrationのレビューも、まずPrisma schemaとPrisma Clientの使い方から確認する。
+PrismaはメジャーバージョンによってクライアントAPI、永続化契約の定義方法、マイグレーション方式が変わり得る。最初に実バージョンと生成設定を確認し、そのバージョンで有効なAPIへ以下の判断基準を適用する。
 
-DB provider固有の知識を先に当てはめない。Prismaの抽象化を越える実装がある場合だけ、`datasource`、migration SQL、raw SQL、DB固有機能を確認する。
+DBプロバイダー固有の知識は、Prismaの抽象化を越える箇所でのみ追加する。
 
-## Query design
+## 1. クエリ形状を実際のPrisma呼び出しで確認する
 
-### N+1
+N+1や過剰取得を、抽象的な「DB性能」ではなく対象コードのクエリ形状で確認する。
 
-loop内で1件ずつqueryする構造を問題候補として扱う。
+- ループ内で関連データを1件ずつ取得していないか
+- ID集合を一括条件で取得できないか
+- 必要な列だけに絞る選択APIを利用できないか
+- 必要な関連だけを一括取得できないか
+- 一括取得によって逆に巨大な結果や重複データを作っていないか
 
-確認する。
+対象バージョンで`select`、`include`、`in`、リレーション読み込み戦略（relation load strategy）等が利用できる場合は候補にする。利用可否や実際のSQL生成方式は実バージョンで確認する。
 
-- relationをまとめて取得できないか
-- ID群をbatch取得できないか
-- 必要以上のrelationを一括取得して巨大payloadにしていないか
-- query回数、DB負荷、payload、cardinalityのどこが実際のボトルネックか
+## 2. 一つの業務操作に複数書き込みがあるときだけトランザクションを広げる
 
-query回数が少ないほど常に良いとは判断しない。
+単一のPrisma書き込み操作で原子的に成立する処理へ、理由なく大きなトランザクション境界を追加しない。
 
-## Transaction / failure safety
+複数書き込みを一つの業務操作として成立させる必要がある場合は、対象バージョンが提供するトランザクションAPIを使い、次を確認する。
 
-nested write、複数query transaction、interactive transaction等から、use caseに合う最小のtransaction boundaryを選ぶ。
+- 同じトランザクション文脈を必要な下位処理へ渡せているか
+- ヘルパー（Helper）が独立した別トランザクションを開き、呼び出し元と不可分だと誤認していないか
+- 読み取り結果に基づいて更新する処理で、競合時の挙動まで設計しているか
+- 外部API、メール送信、長時間CPU処理、ユーザー入力待ちをトランザクション中に行っていないか
 
-transaction内で外部API、メール送信、長時間CPU処理、user input待ち等を行い、DB transactionを長時間保持していないか確認する。
+DBトランザクションで囲んでも、外部副作用までロールバックできるわけではない。
 
-取り消せない外部副作用はDB rollbackでは戻せない。transactionで囲めば処理全体がatomicになるとは判断しない。
+## 3. 競合と再実行を更新条件へ落とす
 
-## Idempotency / concurrency
+読取・変更・書込（read-modify-write）や再実行可能なバッチでは、競合検出と冪等性を具体的な更新条件へ反映する。
 
-read-modify-writeやbatch再実行では、Idempotency（冪等性）、競合検出、retry policyを確認する。
+候補:
 
-Prismaの通常queryだけで不変条件を安全に保てない場合は、transaction、unique constraint、version field、atomic update、必要に応じたDB固有の仕組みを検討する。
+- 一意制約で重複登録を防ぐ
+- バージョン番号や更新時刻等を条件に含め、更新件数から競合を検出する
+- 対象バージョンが提供する原子的な加減算等で、読取後の再計算を減らす
+- トランザクション競合をPrismaが自動再試行すると仮定せず、実バージョンの挙動を確認する
+- 競合時に再試行するのか、利用側へ競合として返すのかをユースケースで決める
 
-競合対策は「仕組みを入れた」で終わらせず、競合検出後にretryするのか、利用側へ競合として返すのかまでuse caseで決める。
+## 4. Prismaの永続化モデルを外部契約と同一視しない
 
-## Schema / constraint / ownership
+対象バージョンのPrisma Schema（スキーマ）、Contract（契約定義）等で表現される永続化モデルを、そのままAPI契約やドメイン型とみなさない。
 
-Prisma schemaを業務上の唯一のSource of Truthと決めつけない。次の責務を区別する。
+- DBで常に守る不変条件は、可能ならPrismaの永続化定義やDB制約へ置く
+- API契約やドメイン型が永続化モデルと異なる変更理由を持つ場合は分ける
+- Prismaが生成する型を、外部公開契約の正本として無条件に流用しない
 
-- DBで常に守るべき不変条件
-- Prisma modelとして必要な構造
-- API contract
-- domain type
+一方、同じ永続化契約を別の手書き型で重複管理しない。
 
-`@unique`、relation、required field等、Prisma schemaからDB制約へ反映できる保証は、application codeだけのvalidationへ寄せない。
+## 5. マイグレーションは生成された実行内容まで確認する
 
-Prisma schemaだけで表現できない制約やDB機能を使う場合は、migration SQLやDB側定義も確認する。Prisma Clientから見えない保証を、存在しないものとして扱わない。
+Prismaが生成したマイグレーションでも、既存データを壊さないことまでは自動保証されない。
 
-## Migration / compatibility
+対象バージョンが生成するSQL、migration plan（マイグレーション計画）、実行定義等を確認し、特に次を見る。
 
-schema変更では、最終形だけでなくmigration手順を確認する。
+- 名前変更が削除 + 追加として扱われ、データ消失につながらないか
+- 必須項目追加前に既存データを埋める必要がないか
+- 分割・統合でデータ変換が必要か
+- 旧アプリと新アプリが同時稼働する期間に両方から読み書きできるか
+- 拡張・縮退（Expand-and-Contract）の段階移行が必要か
 
-- 既存dataが新しい制約を満たすか
-- column / relationのrename・split・mergeで段階移行が必要か
-- app旧版と新版が同時稼働しても成立するか
-- deploy途中でread / write contractが壊れないか
-- rollback可能性をどう扱うか
+生成物のファイル形式や編集方法はバージョンで異なるため、固定手順をSkill内へ持たない。
 
-migration SQLがPrismaの自動生成結果でも、運用上の影響が大きい変更は内容を確認する。
+## 6. インデックスは実クエリと実行計画から決める
 
-## Index / query performance
+Prismaの永続化定義でインデックスを追加できる場合も、宣言だけで判断しない。
 
-indexを追加する場合は、Prisma schema上の定義だけで判断せず、実際のquery pattern、filter、sort、relation、cardinality、write overheadを確認する。
+- 絞り込み、並び順、関連条件でどの列を使うか
+- カーディナリティ（値の分布や件数特性）がどうか
+- 読み取り改善と書き込みコストが見合うか
+- Prismaが生成するSQLやDB実行計画が想定通りか
 
-performance上の問題が疑われる場合は、Prismaが生成するqueryや実行計画まで確認する。推測だけでindexやraw SQLを追加しない。
+推測だけでインデックスや生SQL（Raw SQL）を追加しない。
 
-## Prismaの抽象化を越える場合
+## 7. Prismaの抽象化を越える箇所を境界として扱う
 
-次が対象に含まれる場合だけ、実際のDB providerとその仕様を追加確認する。
+次が含まれる場合は、対象バージョンのPrisma APIと実際のDBプロバイダー仕様を追加確認する。
 
-- `$queryRaw` / `$executeRaw`
-- migration SQLの手編集
-- Prisma schemaで表現できないconstraint / index
-- DB固有型・extension・function・trigger
-- isolation / locking等のDB固有挙動
-- provider固有のperformance問題
+- 生SQLやSQL builder（SQLビルダー）を直接使う
+- マイグレーション生成物を手編集する
+- Prismaの永続化定義で表現できない制約 / インデックスを使う
+- DB固有型、拡張、関数、トリガーを使う
+- 分離レベル（isolation level）やロック（locking）を明示制御する
 
-この場合も、Skill内に特定DBの時点依存知識を固定しない。対象projectのproviderとversionを確認し、必要な事実だけ公式情報で検証する。
+Prismaが隠しているDB固有知識を、このSkillへ固定で持ち込まない。
 
-## Version Awareness
+## 8. バージョン依存機能はその場で確認する
 
-Preview / GA、generator、client API、query strategy、migration behavior、provider固有機能等の状態が判断に影響する場合だけ、対象projectの実versionと公式情報を確認する。
-
-詳細は [Version Awareness](../core/version-awareness.md) に従う。
+Preview（プレビュー） / GA（正式提供）、クライアントAPI、リレーション読み込み戦略、マイグレーション方式、生成設定等が判断に影響する場合は、[Version Awareness（バージョン依存事項）](../core/version-awareness.md) に従う。

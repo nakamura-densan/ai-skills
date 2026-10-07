@@ -33,7 +33,7 @@ description: コードの保守性を高く保つための設計基準を提供�
 [Execution Workflow](references/process/workflow.md) に従う。
 
 1. 新規実装・機能追加・修正・リファクタリングでは設計基準を実装方針へ適用する。設計相談やレビュー依頼では、その用途に応じたモードへ切り替える。
-2. `.code-design/context.md`、明示的なDocs・ADR・規約、対象周辺の実装を必要な範囲だけ確認する。
+2. `.code-design-guidelines/cache/context.md`、明示的なDocs・ADR・規約、対象周辺の実装を必要な範囲だけ確認する。
 3. 対象とDirect Scopeを定め、必要な場合だけBehavioral Scope、Impact Scopeへ広げる。
 4. 判断に関係する使用技術・実バージョン・設定・既存Toolingを確認し、該当するReferenceだけ読む。
 5. Coreとプロジェクト固有ルールに沿って設計・実装方針を判断する。
@@ -98,8 +98,14 @@ Confidence（確信度）は **High / Medium** を基本とし、Lowの推測的
 
 ### Technologies
 
+技術ReferenceはCoreの一般原則を繰り返さず、その技術の型システム、実行モデル、API、設定、典型的な失敗形へ具体化するために使う。対象で実際に使われている技術だけを読む。
+
 - [TypeScript](references/technologies/typescript.md)
 - [React](references/technologies/react.md)
 - [Next.js](references/technologies/nextjs.md)
 - [Prisma](references/technologies/prisma.md)
-- [Styling](references/technologies/styling.md)
+- [スタイリング方式判定](references/technologies/styling.md)
+- [Emotion](references/technologies/emotion.md)
+- [Material UI](references/technologies/mui.md)
+- [vanilla-extract](references/technologies/vanilla-extract.md)
+- [CSS / CSS Modules](references/technologies/css.md)

@@ -1,44 +1,91 @@
-# Next.js Review Guide
+# Next.js設計ガイド
 
-## 実構成を先に確認する
+Next.jsでは、App Router / Pages Router、サーバー / クライアント境界、HTTP境界、更新後の再検証など、実行モデルを誤ると責務とデータ経路が増える。対象プロジェクトのルーター方式とバージョンを先に確認する。
 
-router方式、rendering方式、deployment方式、利用versionを確認し、異なる世代・方式のAPIや設計前提を混同しない。
+バージョン依存のAPIや既定動作は [Version Awareness（バージョン依存事項）](../core/version-awareness.md) に従う。
 
-機能の提供状況、既定動作、推奨APIがversionに依存する場合は、[Version Awareness](../core/version-awareness.md) に従う。
+## 1. App RouterとPages Routerを混同しない
 
-## Server / Client boundary
+`app/`と`pages/`のどちらを使っているか、併存しているかを確認する。
 
-Server / Clientの境界を、データ所有と実行環境の責務に合わせる。
+- App Routerのサーバーコンポーネント（Server Component）前提をPages Routerへ適用しない
+- Pages Routerを「古いから問題」と機械的に判断しない
+- 併存時は、どのルートがどの実行モデルで動くかを明確にする
 
-確認する。
+以降のサーバー / クライアント境界は主にApp Routerを対象とする。
 
-- client側へ不要なmodule graphやdata access責務を広げていないか
-- server-onlyな依存をclient側から参照できる構造になっていないか
-- serializableでない値を境界越しに渡していないか
-- server側で完結できる処理のために不要なHTTP round tripを増やしていないか
-- browser API、interaction、local state等、client executionが必要な範囲を必要以上に広げていないか
+## 2. `'use client'`をクライアント側モジュールグラフの境界として扱う
 
-## Data fetching / BFF
+`'use client'`を付けたファイルから参照される依存はクライアント側へ広がるため、ブラウザーで必要な範囲だけを境界にする。
 
-データ取得経路を増やすほどよいとは判断しない。Server側から直接扱えるresourceを、理由なく別のserver endpoint経由にしない。
+以下の点を確認する。
 
-Clientからserver resourceへアクセスする必要がある場合は、公開契約、authorization、validation、error mappingの責務を明確にする。
+- イベント処理、ブラウザーAPI、ローカル状態（state）等が必要な箇所だけクライアントコンポーネント（Client Component）になっているか
+- DBクライアント、秘密情報、サーバー専用SDK等をクライアント側から参照できる依存構造になっていないか
+- 大きな画面全体をクライアントコンポーネントにした結果、サーバーで完結できる取得・変換処理までクライアントへ移っていないか
+- サーバーコンポーネントからクライアントコンポーネントへ渡す値が境界を越せる形になっているか
 
-mutation系の仕組みをqueryへ流用するなど、APIの用途を本来の実行モデルとずらしていないか確認する。
+サーバー専用・クライアント専用モジュールを明確に分ける仕組みをプロジェクトが利用している場合は、それを活用する。
 
-## Cache / freshness
+## 3. サーバーコンポーネントから自分自身のHTTP APIを呼び直さない
 
-cacheそのものではなく、Freshness（鮮度）の責任がどこにあるかを確認する。
+サーバーコンポーネントやサーバー側処理から同じアプリケーション内のデータへアクセスする場合、ルートハンドラー（Route Handler）をHTTPで経由する必要があるか確認する。
 
-- invalidationのownerが明確か
-- 同じdata sourceをserver / clientで別々に管理していないか
-- stale dataを許容できる期間が業務要件と一致するか
-- rendering / cache behaviorを暗黙のdefaultへ依存していないか
+同一プロセスで直接呼べるサービス（Service）、Prisma Client、SDK等を、理由なく次のような経路へしない。
 
-具体的なcache APIやdefault behaviorはversionで変わり得るため、必要な場合だけ公式情報を確認する。
+`Server Component -> HTTP -> Route Handler -> Service`（サーバーコンポーネント → HTTP → ルートハンドラー → サービス）
 
-## Compatibility
+ルートハンドラーを使う意味があるのは、たとえば次の場合。
 
-公開route、client bundle、server function等の境界では、旧新実装の同時稼働やdeployment切替中の互換性を確認する。
+- ブラウザー等のクライアント側からHTTPで呼ぶ必要がある
+- Webhook（Webhook受信）や外部システムへ公開するHTTP契約である
+- 他の利用側（Consumer）が利用するAPI境界である
+- HTTPとして独立した認証、レート制御、互換性管理が必要である
 
-contract変更がある場合は、Consumer（利用側）を追跡できる仕組みと移行手順を優先する。
+内部利用しかない処理へ不要なHTTP境界を追加しない。
+
+## 4. ルートハンドラー（Route Handler）を公開契約として扱う
+
+ルートハンドラーは単なる内部関数ではなくHTTP境界として扱う。
+
+- 入力検証、認証、認可を境界で行う
+- 内部例外をそのままHTTP契約へ漏らさない
+- リクエスト（Request） / レスポンス（Response）の形式を利用側から追跡できるようにする
+- サーバーコンポーネント専用処理と外部向けAPI処理を同じ責務へ混ぜない
+
+HTTP契約が不要なら、通常のサーバー関数やサービスの方が単純ではないか確認する。
+
+## 5. サーバー関数 / サーバーアクション（Server Function / Server Action）は更新用のサーバー境界として扱う
+
+クライアントコンポーネントやフォームから更新処理を呼ぶ場合、Server Function / Server Actionを「安全な内部関数」とみなさない。クライアントから入力される境界として扱う。
+
+- 入力を実行時検証する
+- 認証済みであることと、その操作を実行できることを別に確認する
+- DB更新と外部副作用の順序、失敗時挙動を設計する
+- 更新後にどの画面・データを再検証する必要があるかを同じユースケースとして扱う
+
+名称や推奨APIはバージョンで変わり得るため、対象バージョンの公式情報を確認する。
+
+## 6. データの鮮度責任を明示する
+
+Next.jsのキャッシュ挙動はバージョンで変化し得るため、このSkill内の既定値を前提にしない。
+
+設計では次を明確にする。
+
+- どのデータを毎回最新にする必要があるか
+- どのデータは一定期間古くてもよいか
+- 更新時に何を再検証・無効化すべきか
+- 同じデータをサーバー側とクライアント側で別々の正本として持っていないか
+
+`revalidatePath`等の具体APIを使う場合は、対象バージョンの意味と影響範囲を確認する。
+
+## 7. 環境境界を依存関係で守る
+
+秘密情報やサーバー専用処理を「呼ばないよう注意する」だけにしない。
+
+- サーバー専用モジュールをクライアント側から`import`できない構造にする
+- 対象バージョンで`server-only`が利用できる場合、サーバー専用データアクセス層などへ適用して誤importをビルド時に検出する
+- 公開可能な環境変数と秘密情報を分ける
+- クライアントへ渡すデータを必要最小限にする
+
+どの仕組みが利用可能かは対象Next.jsバージョンとプロジェクト設定を確認する。
