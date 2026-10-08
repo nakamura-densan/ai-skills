@@ -62,13 +62,17 @@ TypeScriptの型は実行時には入力を検証しない。HTTP、JSON、`Form
 
 `as const`など、型を狭めるための別用途とは区別する。
 
-## 6. コンパイラ設定を品質機構として扱う
+## 6. 機械的な検証・設定を型システムへ合わせる
 
 `tsconfig`の実設定を確認し、プロジェクトが有効にしている型検査を前提に設計する。
 
-`strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`等を提案する場合は、設定を強くすること自体を目的にしない。どの不具合を機械検出できるかと、既存コードへの移行コストを示す。
+- `strict`、`strictNullChecks`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`等は、実際に防ぎたい不具合と既存コードへの影響を確認して有効性を判断する
+- `extends`、プロジェクト参照（project references）、ビルドモード（build mode）等を使う場合、エディタとCIで異なる`tsconfig`を参照していないか確認する
+- ESLint / Biome等で型情報を使うルールを採用している場合、コンパイラでは拾えないPromiseや安全でないAPI利用等の検出へ活用する
+- OpenAPI、実行時スキーマ、Prisma等から型を生成する場合、生成忘れや生成物のずれをビルド / CIで検出できるか確認する
+- 既にコンパイラや静的解析がCIで確実に検出する問題を、AIレビューの主Findingとして重複させない
 
-設定項目の意味や利用可否がバージョンに依存する場合は、[Version Awareness（バージョン依存事項）](../core/version-awareness.md) に従う。
+設定項目や静的解析機能の利用可否がバージョンに依存する場合は、[Version Awareness（バージョン依存事項）](../core/version-awareness.md) に従う。
 
 ## 7. 日付計算はプロジェクト標準へ寄せる
 

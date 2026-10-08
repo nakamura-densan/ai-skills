@@ -20,7 +20,17 @@ Updated at: <ISO datetime>
 - eslint.config.mjs — lint policy
 
 ## Technology
+- Java: x
+- Spring Boot: x.y
+- Spring Framework: x.y
+- Spring web stack: MVC | WebFlux | none
+- Build: Maven | Gradle | other
 - TypeScript: x.y
+- NestJS: x.y | none
+- NestJS HTTP platform: Express | Fastify | other | none
+- Hono: x.y | none
+- Hono runtime: Cloudflare Workers | Node.js | Bun | Deno | other | none
+- Hono RPC: enabled | disabled | unknown
 - React: x.y
 - Next.js: x.y
 - Prisma: x.y
@@ -54,7 +64,7 @@ Observedを正式ルールとして扱わない。
 次が変更されていれば該当項目だけ再確認する。
 
 - architecture docs / ADR
-- package / lockfile
+- package / lockfile / build manifest
 - compiler / lint config
 - schema / migration
 - core module / shared contract

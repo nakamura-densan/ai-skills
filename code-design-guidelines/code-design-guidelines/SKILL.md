@@ -98,9 +98,13 @@ Confidence（確信度）は **High / Medium** を基本とし、Lowの推測的
 
 ### Technologies
 
-技術ReferenceはCoreの一般原則を繰り返さず、その技術の型システム、実行モデル、API、設定、典型的な失敗形へ具体化するために使う。対象で実際に使われている技術だけを読む。
+技術ReferenceはCoreの一般原則を繰り返さず、その技術の型システム、実行モデル、API、設定、典型的な失敗形へ具体化するために使う。技術固有のコンパイラ設定、静的解析、生成物、フレームワーク検証などの機械的な検証方法もTechnology Referenceへ置き、CoreのTooling Auditには持ち込まない。対象で実際に使われている技術だけを読む。
 
 - [TypeScript](references/technologies/typescript.md)
+- [Java](references/technologies/java.md)
+- [Spring Boot](references/technologies/spring-boot.md)
+- [NestJS](references/technologies/nestjs.md)
+- [Hono](references/technologies/hono.md)
 - [React](references/technologies/react.md)
 - [Next.js](references/technologies/nextjs.md)
 - [Prisma](references/technologies/prisma.md)

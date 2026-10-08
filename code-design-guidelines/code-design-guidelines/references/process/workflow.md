@@ -33,7 +33,7 @@
 - ADR
 - architecture / design docs
 - coding conventions
-- package manifest / lockfile
+- package manifest / lockfile / build manifest（`pom.xml`、Gradle build等）
 - compiler / linter / formatter config
 - representative implementation
 - OpenAPI / schema / migration
@@ -60,11 +60,11 @@
 
 ## 4. 技術・バージョン・Toolingを確認する
 
-判断に影響する場合だけ、`package.json`、lockfile、framework config、runtime config、Prisma schema等から実際のバージョンと有効な設定を把握し、該当する技術Referenceを読む。
+判断に影響する場合だけ、依存定義、lockfile、ビルド定義、フレームワーク / 実行環境（runtime）の設定、スキーマ（schema）等から実際の技術・バージョン・有効な設定を把握し、該当するTechnology Referenceを読む。技術固有の実行モデル、設定、検証機構、確認項目はTechnology Reference側で判断する。
 
 版依存の事実が判断に影響する場合は、[Version Awareness](../core/version-awareness.md) に従い、その時点の公式情報で確認する。時点依存の知識をSkill内の記述だけから断定しない。
 
-続けて、必要な範囲でTooling Auditを行う。型、linter、test、Prisma schema / DB制約、CI等ですでに機械的に担保されている事項を、人間や生成AIの注意力へ戻さない。
+続けて、必要な範囲でTooling Auditを行う。コンパイラ、型検査、静的解析、リンター（linter）、テスト、スキーマ（schema） / DB制約、CI等ですでに機械的に担保されている事項を、人間や生成AIの注意力へ戻さない。
 
 画面・コンポーネントのスタイリングが判断対象に含まれる場合は、CSSを前提にせず、依存関係・`import`・設定・代表実装から実際の方式を特定し、まず [スタイリング方式判定](../technologies/styling.md) を読む。その後、実際に利用している方式に対応するReferenceだけを追加で読む。Material UIが内部依存としてEmotionを持つだけの場合はEmotionを直接採用しているとは判断しない。
 
